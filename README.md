@@ -1,6 +1,7 @@
 # Services to be supported in future
 
 - YouTube
+- Twitch
 - Spotify (Premium required)
 - SoundCloud
 

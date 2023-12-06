@@ -1,6 +1,6 @@
-import { SoundCloudEmbed } from "./embeds/SoundCloudEmbed";
-import { TwitchEmbed } from "./embeds/TwitchEmbed";
-import { YouTubeEmbed } from "./embeds/YouTubeEmbed";
+import { SoundCloudEmbed } from "./embed/SoundCloudEmbed";
+import { TwitchEmbed } from "./embed/TwitchEmbed";
+import { YouTubeEmbed } from "./embed/YouTubeEmbed";
 
 export const Embed = {
   YouTube: YouTubeEmbed,

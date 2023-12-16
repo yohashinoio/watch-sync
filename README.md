@@ -2,7 +2,7 @@
 
 - YouTube
 - Twitch
-- Spotify (Premium required)
+- Spotify
 - SoundCloud
 
 # Motivation

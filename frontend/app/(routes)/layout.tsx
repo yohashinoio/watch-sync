@@ -6,7 +6,7 @@ import { Box, ColorSchemeScript, MantineProvider } from "@mantine/core";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Notifications } from "@mantine/notifications";
-import { RecoilRoot } from "recoil";
+import { Providers } from "./provider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,7 +29,7 @@ export default function RootLayout({
         <MantineProvider>
           <Notifications />
           <Box bg={"gray.0"}>
-            <RecoilRoot>{children}</RecoilRoot>
+            <Providers>{children}</Providers>
           </Box>
         </MantineProvider>
       </body>

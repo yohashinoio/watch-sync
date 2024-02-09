@@ -1,8 +1,8 @@
 import { Paper, ScrollArea } from "@mantine/core";
 
-type PlayListProps = { h: string };
+type MemberListProps = { h: string };
 
-export const PlayList: React.FC<PlayListProps> = (props) => {
+export const MemberList: React.FC<MemberListProps> = (props) => {
   return (
     <Paper h={props.h} w={"20%"} shadow={"xs"}>
       <ScrollArea></ScrollArea>

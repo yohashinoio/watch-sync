@@ -4,16 +4,72 @@ import { Avatar, Box, Center, Flex } from "@mantine/core";
 import React from "react";
 import { VideoInfo } from "js-video-url-parser/lib/urlParser";
 import { Embed } from "../_components/Embed";
-import { PlayList } from "../_components/list/PlayList";
-import { ParticipantList } from "../_components/list/ParticipantList";
+import { PlayQueue } from "../_components/list/PlayQueue";
+import { MemberList } from "../_components/list/MemberList";
 import { URLInput } from "../_components/input/URLInput";
+import { useRecoilCallback, useRecoilState } from "recoil";
+import { Content, playQueueAtom } from "../_recoil/atoms";
+import { YouTubePlayer } from "react-youtube";
+
+const onPlay = () => {
+  console.log("onPlay");
+};
+const onPlaybackRateChange = () => {
+  console.log("onPlaybackRateChange");
+};
 
 export default function Home() {
+  const youtube_player = React.useRef<YouTubePlayer>(null);
+
+  const [play_queue, setPlayQueue] = useRecoilState(playQueueAtom);
   const [embed, setEmbed] = React.useState<React.ReactNode | null>(null);
 
-  const handleEnterUrl = (parsed: VideoInfo<Record<string, any>, string>) => {
-    if (parsed.provider === "youtube")
-      setEmbed(<Embed.YouTube id={parsed.id} />);
+  // On end of current content, play the top of play queue
+  const onEnd = useRecoilCallback(
+    ({ snapshot }) =>
+      async () => {
+        const next = (await snapshot.getPromise(playQueueAtom)).at(0);
+
+        if (!next) {
+          setEmbed(null);
+          return;
+        }
+
+        setPlayQueue((prev) => prev.slice(1));
+        displayEmbed(next);
+      },
+    []
+  );
+
+  const onPause = () => {
+    console.log("onPause");
+  };
+
+  const displayEmbed = (c: Content) => {
+    if (c.provider === "youtube") {
+      setEmbed(
+        <Embed.YouTube
+          id={c.id}
+          onReady={(e) => (youtube_player.current = e.target)}
+          onPause={onPause}
+          onPlay={onPlay}
+          onEnd={onEnd}
+          onPlaybackRateChange={onPlaybackRateChange}
+        />
+      );
+    }
+  };
+
+  const handleEnterUrl = (info: VideoInfo<Record<string, any>, string>) => {
+    const entry = { key: Date.now(), id: info.id, provider: info.provider };
+
+    if (play_queue.length === 0 && embed === null) {
+      displayEmbed(entry);
+      return;
+    }
+
+    setPlayQueue((prev) => [...prev, entry]);
+    console.log(play_queue);
   };
 
   return (
@@ -34,9 +90,9 @@ export default function Home() {
 
       <main>
         <Flex h={"80svh"} justify={"space-between"} align={"center"}>
-          <PlayList h={"80svh"} />
+          <PlayQueue h={"80svh"} />
           <Box>{embed}</Box>
-          <ParticipantList h={"80svh"} />
+          <MemberList h={"80svh"} />
         </Flex>
       </main>
 

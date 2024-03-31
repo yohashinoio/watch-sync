@@ -18,7 +18,7 @@ const onPlaybackRateChange = () => {
 };
 
 export default function Welcome({ auth }: PageProps) {
-    const youtube_player = React.useRef<YouTubePlayer>(null);
+    const youtube_player = React.useRef<YouTubePlayer | null>(null);
 
     const [play_queue, setPlayQueue] = useRecoilState(playQueueAtom);
     const [embed, setEmbed] = React.useState<React.ReactNode | null>(null);

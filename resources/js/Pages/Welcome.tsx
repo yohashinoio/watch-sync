@@ -9,10 +9,8 @@ import { Embed } from "@/Components/WatchSync/Embed";
 import { URLInput } from "@/Components/WatchSync/Input/URLInput";
 import { PlayQueue } from "@/Components/WatchSync/List/PlayQueue";
 import { MemberList } from "@/Components/WatchSync/List/MemberList";
+import axios from "axios";
 
-const onPlay = () => {
-    console.log("onPlay");
-};
 const onPlaybackRateChange = () => {
     console.log("onPlaybackRateChange");
 };
@@ -23,9 +21,9 @@ export default function Welcome({ auth }: PageProps) {
     const [play_queue, setPlayQueue] = useRecoilState(playQueueAtom);
     const [embed, setEmbed] = React.useState<React.ReactNode | null>(null);
 
-    // On end of current content, play the top of play queue
-    const onEnd = useRecoilCallback(
+    const advance_embed = useRecoilCallback(
         ({ snapshot }) =>
+            // On end of current content, play the top of play queue
             async () => {
                 const next = (await snapshot.getPromise(playQueueAtom)).at(0);
 
@@ -40,8 +38,16 @@ export default function Welcome({ auth }: PageProps) {
         []
     );
 
-    const onPause = () => {
-        console.log("onPause");
+    const onPause = (time: number) => {
+        axios.post("/pause", { time }).catch((e) => console.error(e));
+    };
+
+    const onPlay = (time: number) => {
+        axios.post("/play", { time }).catch((e) => console.error(e));
+    };
+
+    const onEnd = () => {
+        axios.post("/end").catch((e) => console.error(e));
     };
 
     const displayEmbed = (c: Content) => {
@@ -70,6 +76,18 @@ export default function Welcome({ auth }: PageProps) {
         setPlayQueue((prev) => [...prev, entry]);
         console.log(play_queue);
     };
+
+    window.Echo.channel("end-channel").listen("End", (e: any) => {
+        advance_embed();
+    });
+
+    window.Echo.channel("pause-channel").listen("Pause", (e: any) => {
+        console.log(`Pause: ${e.time}`);
+    });
+
+    window.Echo.channel("play-channel").listen("Play", (e: any) => {
+        console.log(`Play: ${e.time}`);
+    });
 
     return (
         <Box mx={24}>

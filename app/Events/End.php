@@ -4,12 +4,12 @@ namespace App\Events;
 
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 
-class End implements ShouldBroadcast
+class End implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
@@ -18,7 +18,6 @@ class End implements ShouldBroadcast
      */
     public function __construct()
     {
-        //
         Log::info('End event fired!');
     }
 

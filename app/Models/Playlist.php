@@ -5,12 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Room extends Model
+class Playlist extends Model
 {
     use HasFactory;
-
-    public function playlist()
-    {
-        return $this->hasOne(Playlist::class);
-    }
 }

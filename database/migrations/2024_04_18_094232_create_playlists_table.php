@@ -11,9 +11,25 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::create('items', function (Blueprint $table) {
+            $table->id();
+            $table->timestamps();
+            $table->string('provider');
+            $table->string('media_id');
+        });
+
+        Schema::create('playlist_items', function (Blueprint $table) {
+            $table->id();
+            $table->timestamps();
+            $table->foreignId('playlist_id')->constrained('playlists')->cascadeOnDelete();
+            $table->foreignId('item_id')->constrained('items');
+            $table->unique(['playlist_id', 'item_id']);
+        });
+
         Schema::create('playlists', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
+            $table->foreignId('room_id')->constrained()->cascadeOnDelete();
         });
     }
 
@@ -23,5 +39,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('playlists');
+        Schema::dropIfExists('playlist_items');
+        SchemeSchema::dropIfExists('items');
     }
 };

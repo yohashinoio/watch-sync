@@ -8,4 +8,13 @@ use Illuminate\Database\Eloquent\Model;
 class Playlist extends Model
 {
     use HasFactory;
+
+    protected $fillable = [
+        'room_id',
+    ];
+
+    public function items()
+    {
+        return $this->hasMany(PlaylistItem::class);
+    }
 }

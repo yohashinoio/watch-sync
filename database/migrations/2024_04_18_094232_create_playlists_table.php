@@ -40,6 +40,6 @@ return new class extends Migration
     {
         Schema::dropIfExists('playlists');
         Schema::dropIfExists('playlist_items');
-        SchemeSchema::dropIfExists('items');
+        Schema::dropIfExists('items');
     }
 };

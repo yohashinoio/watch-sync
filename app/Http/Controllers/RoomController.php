@@ -32,6 +32,9 @@ class RoomController extends Controller
         // Create new room
         $room = Room::create();
 
+        // Create new playlist
+        $room->playlist()->create(['room_id' => $room->id]);
+
         // Return room id as json
         return response()->json($room);
     }

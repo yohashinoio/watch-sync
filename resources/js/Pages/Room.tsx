@@ -4,7 +4,7 @@ import { VideoInfo } from "js-video-url-parser/lib/urlParser";
 import { YouTubePlayer } from "react-youtube";
 import { PageProps } from "@/types";
 import { useRecoilCallback, useRecoilState } from "recoil";
-import { Content, playQueueAtom } from "@/Recoil/atoms";
+import { Media, playQueueAtom } from "@/Recoil/atoms";
 import { Embed } from "@/Components/WatchSync/Embed";
 import { URLInput } from "@/Components/WatchSync/Input/URLInput";
 import { PlayQueue } from "@/Components/WatchSync/List/PlayQueue";
@@ -23,7 +23,7 @@ export default function Room({ auth }: PageProps) {
 
     const advance_embed = useRecoilCallback(
         ({ snapshot }) =>
-            // On end of current content, play the top of play queue
+            // On end of current media, play the top of play queue
             async () => {
                 const next = (await snapshot.getPromise(playQueueAtom)).at(0);
 
@@ -50,7 +50,7 @@ export default function Room({ auth }: PageProps) {
         axios.post("/end").catch((e) => console.error(e));
     };
 
-    const displayEmbed = (c: Content) => {
+    const displayEmbed = (c: Media) => {
         if (c.provider === "youtube") {
             setEmbed(
                 <Embed.YouTube

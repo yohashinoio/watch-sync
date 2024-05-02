@@ -7,7 +7,7 @@ export type Media = {
     provider: string | undefined;
 };
 
-export const playQueueAtom = atom<Media[]>({
-    key: "playqueue",
+export const playListAtom = atom<Media[]>({
+    key: "playlist",
     default: [],
 });

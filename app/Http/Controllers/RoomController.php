@@ -44,8 +44,7 @@ class RoomController extends Controller
      */
     public function show(Room $room)
     {
-        //
-        return Inertia::render('Room', []);
+        return Inertia::render('Room', ["room_id" => $room->id, "playlist_id" => $room->playlist()->first()->id]);
     }
 
     /**

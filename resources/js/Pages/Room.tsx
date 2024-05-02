@@ -4,51 +4,69 @@ import { VideoInfo } from "js-video-url-parser/lib/urlParser";
 import { YouTubePlayer } from "react-youtube";
 import { PageProps } from "@/types";
 import { useRecoilCallback, useRecoilState } from "recoil";
-import { Media, playQueueAtom } from "@/Recoil/atoms";
+import { Media, playListAtom } from "@/Recoil/atoms";
 import { Embed } from "@/Components/WatchSync/Embed";
 import { URLInput } from "@/Components/WatchSync/Input/URLInput";
-import { PlayQueue } from "@/Components/WatchSync/List/PlayQueue";
 import { MemberList } from "@/Components/WatchSync/List/MemberList";
 import axios from "axios";
+import { PlayList } from "@/Components/WatchSync/List/PlayList";
 
 const onPlaybackRateChange = () => {
     console.log("onPlaybackRateChange");
 };
 
-export default function Room({ auth }: PageProps) {
+type Props = {
+    room_id: number;
+    playlist_id: number;
+};
+
+export default function Room({ auth, room_id, playlist_id }: PageProps<Props>) {
+    // TODO: 必ず動画を最初から再生（今は既に途中まで見ている場合、途中から再生になってしまう）
+    // TODO: プレイと一時停止の状態を同期する
+    // TODO: 同じ動画が複数プレイリストに入っていても正常に再生できるようにする
+
     const youtube_player = React.useRef<YouTubePlayer | null>(null);
 
-    const [play_queue, setPlayQueue] = useRecoilState(playQueueAtom);
+    const [playlist, setPlaylist] = useRecoilState(playListAtom);
     const [embed, setEmbed] = React.useState<React.ReactNode | null>(null);
 
-    const advance_embed = useRecoilCallback(
+    const handleEnterUrl = (info: VideoInfo<Record<string, any>, string>) => {
+        const entry: Media = {
+            key: Date.now(),
+            id: info.id,
+            provider: info.provider,
+        };
+
+        axios
+            .put(route("playlists.update", playlist_id), {
+                new_playlist: [...playlist, entry],
+            })
+            .catch((e) => console.error(e));
+    };
+
+    const advanceEmbed = useRecoilCallback(
         ({ snapshot }) =>
-            // On end of current media, play the top of play queue
+            // On end of current media, play the top of playlist
             async () => {
-                const next = (await snapshot.getPromise(playQueueAtom)).at(0);
+                const current = await snapshot.getPromise(playListAtom);
+
+                const next = current.at(0);
 
                 if (!next) {
                     setEmbed(null);
                     return;
                 }
 
-                setPlayQueue((prev) => prev.slice(1));
                 displayEmbed(next);
+
+                axios
+                    .put(route("playlists.update", playlist_id), {
+                        new_playlist: current.slice(1),
+                    })
+                    .catch((e) => console.error(e));
             },
         []
     );
-
-    const onPause = (time: number) => {
-        axios.post("/pause", { time }).catch((e) => console.error(e));
-    };
-
-    const onPlay = (time: number) => {
-        axios.post("/play", { time }).catch((e) => console.error(e));
-    };
-
-    const onEnd = () => {
-        axios.post("/end").catch((e) => console.error(e));
-    };
 
     const displayEmbed = (c: Media) => {
         if (c.provider === "youtube") {
@@ -65,29 +83,58 @@ export default function Room({ auth }: PageProps) {
         }
     };
 
-    const handleEnterUrl = (info: VideoInfo<Record<string, any>, string>) => {
-        const entry = { key: Date.now(), id: info.id, provider: info.provider };
-
-        if (play_queue.length === 0 && embed === null) {
-            displayEmbed(entry);
-            return;
-        }
-
-        setPlayQueue((prev) => [...prev, entry]);
-        console.log(play_queue);
+    const onPause = (time: number) => {
+        axios.post("/broadcast/pause", { time }).catch((e) => console.error(e));
     };
 
-    window.Echo.channel("end-channel").listen("End", (e: any) => {
-        advance_embed();
-    });
+    const onPlay = (time: number) => {
+        axios.post("/broadcast/play", { time }).catch((e) => console.error(e));
+    };
 
-    window.Echo.channel("pause-channel").listen("Pause", (e: any) => {
-        console.log(`Pause: ${e.time}`);
-    });
+    const onEnd = () => {
+        axios.post("/broadcast/end").catch((e) => console.error(e));
+    };
 
-    window.Echo.channel("play-channel").listen("Play", (e: any) => {
-        console.log(`Play: ${e.time}`);
-    });
+    const onUpdatePlaylist = (new_playlist: any) => {
+        setPlaylist(
+            new_playlist.map((c: any, idx: number): Media => {
+                return {
+                    key: idx,
+                    id: c.media_id,
+                    provider: c.provider,
+                };
+            })
+        );
+
+        // Use setter to get the latest value
+        setEmbed((current_embed) => {
+            if (current_embed === null) advanceEmbed();
+            return current_embed;
+        });
+    };
+
+    // Use useEffect to prevent multiple listen events!!
+    React.useEffect(() => {
+        window.Echo.channel("end-channel").listen("End", (e: any) => {
+            advanceEmbed();
+        });
+
+        window.Echo.channel("pause-channel").listen("Pause", (e: any) => {
+            console.log(`Pause: ${e.time}`);
+        });
+
+        window.Echo.channel("play-channel").listen("Play", (e: any) => {
+            console.log(`Play: ${e.time}`);
+        });
+
+        window.Echo.channel("update-playlist-channel").listen(
+            "UpdatePlaylist",
+            (e: any) => {
+                console.log(`Update playlist`);
+                onUpdatePlaylist(e.new_playlist);
+            }
+        );
+    }, []);
 
     return (
         <Box mx={24}>
@@ -107,14 +154,14 @@ export default function Room({ auth }: PageProps) {
 
             <main>
                 <Flex h={"80svh"} justify={"space-between"} align={"center"}>
-                    <PlayQueue h={"80svh"} />
+                    <PlayList h={"80svh"} />
                     <Box>{embed}</Box>
                     <MemberList h={"80svh"} />
                 </Flex>
             </main>
 
             <footer>
-                <Center h={"10svh"}></Center>
+                <Center h={"10svh"}>Room id: {room_id}</Center>
             </footer>
         </Box>
     );

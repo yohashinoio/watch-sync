@@ -23,7 +23,6 @@ return new class extends Migration
             $table->timestamps();
             $table->foreignId('playlist_id')->constrained('playlists')->cascadeOnDelete();
             $table->foreignId('item_id')->constrained('items');
-            $table->unique(['playlist_id', 'item_id']);
         });
 
         Schema::create('playlists', function (Blueprint $table) {

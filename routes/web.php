@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\PlaylistController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -29,5 +30,9 @@ Route::resource('rooms', RoomController::class)
     ->only(['store', 'show']);
     // ->middleware(['auth', 'verified']);
 
+Route::resource('playlists', PlaylistController::class)
+    ->only(['update']);
+    // ->middleware(['auth', 'verified']);
+
 require __DIR__.'/auth.php';
-require __DIR__.'/event.php';
+require __DIR__.'/broadcast.php';

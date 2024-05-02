@@ -21,9 +21,7 @@ type Props = {
 };
 
 export default function Room({ auth, room_id, playlist_id }: PageProps<Props>) {
-    // TODO: 必ず動画を最初から再生（今は既に途中まで見ている場合、途中から再生になってしまう）
     // TODO: プレイと一時停止の状態を同期する
-    // TODO: 同じ動画が複数プレイリストに入っていても正常に再生できるようにする
 
     const youtube_player = React.useRef<YouTubePlayer | null>(null);
 
@@ -57,13 +55,13 @@ export default function Room({ auth, room_id, playlist_id }: PageProps<Props>) {
                     return;
                 }
 
-                displayEmbed(next);
-
                 axios
                     .put(route("playlists.update", playlist_id), {
                         new_playlist: current.slice(1),
                     })
                     .catch((e) => console.error(e));
+
+                displayEmbed(next);
             },
         []
     );
@@ -80,6 +78,12 @@ export default function Room({ auth, room_id, playlist_id }: PageProps<Props>) {
                     onPlaybackRateChange={onPlaybackRateChange}
                 />
             );
+
+            // If it is the same video, the embed will not be updated
+            // If a user has already played the video halfway through, it will start from there
+            //
+            // The following line is needed to work around these
+            youtube_player.current?.seekTo(0, true);
         }
     };
 

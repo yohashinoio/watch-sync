@@ -10,6 +10,7 @@ import { URLInput } from "@/Components/WatchSync/Input/URLInput";
 import { MemberList } from "@/Components/WatchSync/List/MemberList";
 import axios from "axios";
 import { PlayList } from "@/Components/WatchSync/List/PlayList";
+import { on } from "events";
 
 const onPlaybackRateChange = () => {
     console.log("onPlaybackRateChange");
@@ -18,15 +19,37 @@ const onPlaybackRateChange = () => {
 type Props = {
     room_id: number;
     playlist_id: number;
+    init_playlist: any;
 };
 
-export default function Room({ auth, room_id, playlist_id }: PageProps<Props>) {
+export default function Room({
+    auth,
+    room_id,
+    playlist_id,
+    init_playlist,
+}: PageProps<Props>) {
     // TODO: プレイと一時停止の状態を同期する
 
     const youtube_player = React.useRef<YouTubePlayer | null>(null);
 
     const [playlist, setPlaylist] = useRecoilState(playListAtom);
     const [embed, setEmbed] = React.useState<React.ReactNode | null>(null);
+
+    React.useEffect(() => {
+        // Initialize playlist
+        console.log(init_playlist);
+        if (init_playlist) {
+            setPlaylist(
+                init_playlist.map((c: any, idx: number): Media => {
+                    return {
+                        key: idx,
+                        id: c.media_id,
+                        provider: c.provider,
+                    };
+                })
+            );
+        }
+    }, [setPlaylist, init_playlist]);
 
     const handleEnterUrl = (info: VideoInfo<Record<string, any>, string>) => {
         const entry: Media = {
@@ -40,6 +63,27 @@ export default function Room({ auth, room_id, playlist_id }: PageProps<Props>) {
                 new_playlist: [...playlist, entry],
             })
             .catch((e) => console.error(e));
+    };
+
+    const displayEmbed = (c: Media) => {
+        if (c.provider === "youtube") {
+            setEmbed(
+                <Embed.YouTube
+                    id={c.id}
+                    onReady={(e) => (youtube_player.current = e.target)}
+                    onPause={onPause}
+                    onPlay={onPlay}
+                    onEnd={onEnd}
+                    onPlaybackRateChange={onPlaybackRateChange}
+                />
+            );
+
+            // If it is the same video, the embed will not be updated
+            // If a user has already played the video halfway through, it will start from there
+            //
+            // The following line is needed to work around these
+            youtube_player.current?.seekTo(0, true);
+        }
     };
 
     const advanceEmbed = useRecoilCallback(
@@ -63,29 +107,8 @@ export default function Room({ auth, room_id, playlist_id }: PageProps<Props>) {
 
                 displayEmbed(next);
             },
-        []
+        [setEmbed, playlist_id, displayEmbed]
     );
-
-    const displayEmbed = (c: Media) => {
-        if (c.provider === "youtube") {
-            setEmbed(
-                <Embed.YouTube
-                    id={c.id}
-                    onReady={(e) => (youtube_player.current = e.target)}
-                    onPause={onPause}
-                    onPlay={onPlay}
-                    onEnd={onEnd}
-                    onPlaybackRateChange={onPlaybackRateChange}
-                />
-            );
-
-            // If it is the same video, the embed will not be updated
-            // If a user has already played the video halfway through, it will start from there
-            //
-            // The following line is needed to work around these
-            youtube_player.current?.seekTo(0, true);
-        }
-    };
 
     const onPause = (time: number) => {
         axios.post("/broadcast/pause", { time }).catch((e) => console.error(e));
@@ -138,7 +161,7 @@ export default function Room({ auth, room_id, playlist_id }: PageProps<Props>) {
                 onUpdatePlaylist(e.new_playlist);
             }
         );
-    }, []);
+    }, [onUpdatePlaylist, advanceEmbed]);
 
     return (
         <Box mx={24}>

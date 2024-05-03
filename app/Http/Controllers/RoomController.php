@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Room;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Models\Item;
 
 class RoomController extends Controller
 {
@@ -44,7 +45,19 @@ class RoomController extends Controller
      */
     public function show(Room $room)
     {
-        return Inertia::render('Room', ["room_id" => $room->id, "playlist_id" => $room->playlist()->first()->id]);
+        $init_playlist = [];
+        foreach ($room->playlist->items as $playlist_item) {
+            $item = Item::findOrFail($playlist_item->item_id);
+            array_push($init_playlist, $item);
+        }
+
+        return Inertia::render(
+            'Room',
+            [
+                "room_id" => $room->id,
+                "playlist_id" => $room->playlist()->first()->id,
+                "init_playlist" => $init_playlist,
+            ]);
     }
 
     /**

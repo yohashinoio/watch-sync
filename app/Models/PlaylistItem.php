@@ -3,6 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class PlaylistItem extends Model
 {
@@ -11,12 +13,12 @@ class PlaylistItem extends Model
         'item_id',
     ];
 
-    public function playlist()
+    public function playlist(): BelongsTo
     {
         return $this->belongsTo(Playlist::class);
     }
 
-    public function item()
+    public function item(): HasOne
     {
         return $this->hasOne(Item::class);
     }

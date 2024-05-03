@@ -72,7 +72,7 @@ class PlaylistController extends Controller
         }
 
         foreach ($items as $item) {
-            $playlist->items()->create([
+            $playlist_item = $playlist->items()->create([
                 'playlist_id' => $playlist->id,
                 'item_id' => $item->id,
             ]);

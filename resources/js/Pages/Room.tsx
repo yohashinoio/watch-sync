@@ -30,7 +30,6 @@ export default function Room({
     init_playlist,
 }: PageProps<Props>) {
     // TODO: ルームに入った時に再生中の状態を同期する
-    // TODO: 一時停止の状態を同期する
 
     const youtube_player = React.useRef<YouTubePlayer | null>(null);
 
@@ -173,8 +172,24 @@ export default function Room({
         });
     };
 
+    const pause = () => {
+        if (!current_media) throw new Error("Failed to pause: no media");
+
+        if (current_media.provider === "youtube")
+            youtube_player.current?.pauseVideo();
+    };
+
+    const play = () => {
+        if (!current_media) throw new Error("Failed to play: no media");
+
+        if (current_media.provider === "youtube")
+            youtube_player.current?.playVideo();
+    };
+
     const seekTo = (time: number) => {
-        if (current_media?.provider === "youtube")
+        if (!current_media) throw new Error("Failed to seek: no media");
+
+        if (current_media.provider === "youtube")
             youtube_player.current?.seekTo(time, true);
     };
 
@@ -193,8 +208,16 @@ export default function Room({
 
     // Use useEffect to prevent multiple listen events!!
     React.useEffect(() => {
+        window.Echo.leaveAllChannels();
+
         window.Echo.channel("pause-channel").listen("Pause", (e: any) => {
+            // const media = e.media;
+            const time = e.time;
+
             console.log(`Pause: ${e.time}`);
+
+            seekTo(time);
+            pause();
         });
 
         window.Echo.channel("play-channel").listen("Play", async (e: any) => {
@@ -222,6 +245,8 @@ export default function Room({
                 seekTo(time);
                 console.log(`Delay exceeded tolerance: ${delay}`);
             }
+
+            play();
         });
 
         window.Echo.channel("update-playlist-channel").listen(
@@ -231,7 +256,15 @@ export default function Room({
                 onUpdatePlaylist(e.new_playlist);
             }
         );
-    }, [onUpdatePlaylist, advanceEmbed]);
+    }, [
+        onUpdatePlaylist,
+        advanceEmbed,
+        pause,
+        seekTo,
+        getCurrentTime,
+        embed,
+        current_media,
+    ]);
 
     return (
         <Box mx={24}>

@@ -13,14 +13,16 @@ class Pause implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    public $media;
     public $time;
 
     /**
      * Create a new event instance.
      */
-    public function __construct($time)
+    public function __construct($media, $time)
     {
         Log::info('Pause event fired!');
+        $this->media = $media;
         $this->time = $time;
     }
 

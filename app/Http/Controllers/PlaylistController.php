@@ -55,7 +55,7 @@ class PlaylistController extends Controller
      */
     public function update(Request $request, Playlist $playlist)
     {
-        $validated = $request->validate([
+        $request->validate([
             'new_playlist' => 'present',
         ]);
 
@@ -64,7 +64,7 @@ class PlaylistController extends Controller
 
         $items = [];
 
-        foreach ($validated['new_playlist'] as $item) {
+        foreach ($request->new_playlist as $item) {
             array_push($items, Item::firstOrCreate([
                 'provider' => $item['provider'],
                 'media_id' => $item['id'],

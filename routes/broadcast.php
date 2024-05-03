@@ -3,18 +3,20 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-
-Route::post('/broadcast/end', function() {
-    event(new App\Events\End());
-    return 'Event has been fired!';
-});
-
 Route::post('/broadcast/pause', function(Request $request) {
-    event(new App\Events\Pause($request->time));
+    $request->validate([
+        'media' => 'required',
+        'time' => 'required|numeric',
+    ]);
+    event(new App\Events\Pause($request->media, $request->time));
     return 'Event has been fired!';
 });
 
 Route::post('/broadcast/play', function(Request $request) {
-    event(new App\Events\Play($request->time));
+    $request->validate([
+        'media' => 'required',
+        'time' => 'required|numeric',
+    ]);
+    event(new App\Events\Play($request->media, $request->time));
     return 'Event has been fired!';
 });

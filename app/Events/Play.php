@@ -13,15 +13,17 @@ class Play implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    public $room_id;
     public $media;
     public $time;
 
     /**
      * Create a new event instance.
      */
-    public function __construct($media, $time)
+    public function __construct($room_id, $media, $time)
     {
         Log::info('Play event fired!');
+        $this->room_id = $room_id;
         $this->media = $media;
         $this->time = $time;
     }

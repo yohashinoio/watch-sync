@@ -129,7 +129,7 @@ export default function Room({
                 kind === "Play" ? "/broadcast/play" : "/broadcast/pause";
 
             axios
-                .post(api, { media: current_media, time })
+                .post(api, { room_id, media: current_media, time })
                 .catch((e) => console.error(e));
 
             return current_media;
@@ -211,6 +211,8 @@ export default function Room({
         window.Echo.leaveAllChannels();
 
         window.Echo.channel("pause-channel").listen("Pause", (e: any) => {
+            if (e.room_id !== room_id) return;
+
             // const media = e.media;
             const time = e.time;
 
@@ -221,6 +223,8 @@ export default function Room({
         });
 
         window.Echo.channel("play-channel").listen("Play", async (e: any) => {
+            if (e.room_id !== room_id) return;
+
             const media = e.media;
             const time = e.time;
 
@@ -252,7 +256,10 @@ export default function Room({
         window.Echo.channel("update-playlist-channel").listen(
             "UpdatePlaylist",
             (e: any) => {
+                if (e.playlist_id !== playlist_id) return;
+
                 console.log(`Update playlist`);
+
                 onUpdatePlaylist(e.new_playlist);
             }
         );

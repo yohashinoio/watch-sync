@@ -78,7 +78,7 @@ class PlaylistController extends Controller
             ]);
         }
 
-        UpdatePlaylist::dispatch($items);
+        UpdatePlaylist::dispatch($playlist->id, $items);
     }
 
     /**

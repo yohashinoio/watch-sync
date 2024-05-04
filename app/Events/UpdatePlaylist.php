@@ -15,14 +15,16 @@ class UpdatePlaylist implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
+    public $playlist_id;
     public $new_playlist;
 
     /**
      * Create a new event instance.
      */
-    public function __construct($new_playlist)
+    public function __construct($playlist_id, $new_playlist)
     {
         Log::info('Update playlist event fired!');
+        $this->playlist_id = $playlist_id;
         $this->new_playlist = $new_playlist;
     }
 

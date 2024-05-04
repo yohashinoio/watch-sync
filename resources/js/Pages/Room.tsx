@@ -14,9 +14,6 @@ import PlayerStates from "youtube-player/dist/constants/PlayerStates";
 
 const TOLERABLE_DELAY_SECONDS = 2;
 
-let playTriggeredByNonClicks = false;
-let pauseTriggeredByNonClicks = false;
-
 const onPlaybackRateChange = () => {
     console.log("onPlaybackRateChange");
 };
@@ -40,6 +37,9 @@ export default function Room({
     const [playlist, setPlaylist] = useRecoilState(playListAtom);
     const [embed, setEmbed] = React.useState<React.ReactNode | null>(null);
     const [current_media, setCurrentMedia] = React.useState<Media | null>(null);
+
+    const [play_by_non_clicks, setPlayByNonClicks] = React.useState(false);
+    const [pause_by_non_clicks, setPauseByNonClicks] = React.useState(false);
 
     React.useEffect(() => {
         axios
@@ -159,19 +159,17 @@ export default function Room({
     };
 
     const onPause = (time: number) => {
-        const tmp = pauseTriggeredByNonClicks;
-        pauseTriggeredByNonClicks = false;
-
-        if (tmp) return;
+        setPlayByNonClicks(false);
+        // State is not changed immediately, so it is treated as the value before the change
+        if (pause_by_non_clicks) return;
 
         broadcastPlayOrPause("Pause", time);
     };
 
     const onPlay = (time: number) => {
-        const tmp = playTriggeredByNonClicks;
-        playTriggeredByNonClicks = false;
-
-        if (tmp) return;
+        setPlayByNonClicks(false);
+        // State is not changed immediately, so it is treated as the value before the change
+        if (play_by_non_clicks) return;
 
         broadcastPlayOrPause("Play", time);
     };
@@ -208,16 +206,15 @@ export default function Room({
     };
 
     const pause = () => {
-        pauseTriggeredByNonClicks = true;
-
         // Use setter to get the latest value
         setCurrentMedia((current_media) => {
             if (!current_media) throw new Error("Failed to pause: no media");
 
             if (current_media.provider === "youtube") {
-                if (youtube_player.current)
+                if (youtube_player.current) {
+                    setPauseByNonClicks(true);
                     youtube_player.current?.pauseVideo();
-                else throw new Error("Failed to pause: player is null");
+                } else throw new Error("Failed to pause: player is null");
             }
 
             return current_media;
@@ -225,15 +222,15 @@ export default function Room({
     };
 
     const play = () => {
-        playTriggeredByNonClicks = true;
-
         // Use setter to get the latest value
         setCurrentMedia((current_media) => {
             if (!current_media) throw new Error("Failed to play: no media");
 
             if (current_media.provider === "youtube") {
-                if (youtube_player.current) youtube_player.current.playVideo();
-                else throw new Error("Failed to play: player is null");
+                if (youtube_player.current) {
+                    setPlayByNonClicks(true);
+                    youtube_player.current.playVideo();
+                } else throw new Error("Failed to play: player is null");
             }
 
             return current_media;
@@ -341,8 +338,6 @@ export default function Room({
                 console.log(`Delay exceeded tolerance: ${delay}`);
             }
 
-            if ((await getEmbedState()) === "pause") return;
-
             pause();
         });
 
@@ -359,8 +354,6 @@ export default function Room({
                 seekTo(time);
                 console.log(`Delay exceeded tolerance: ${delay}`);
             }
-
-            if ((await getEmbedState()) === "play") return;
 
             play();
         });

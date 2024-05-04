@@ -21,7 +21,7 @@ export const YouTubeEmbed: React.FC<YouTubeEmbedProps> = (props) => {
         },
     };
 
-    const onStateChange = async (event: YouTubeEvent<number>) => {
+    const onStateChange = async (event: YouTubeEvent<PlayerStates>) => {
         const time = await event.target.getCurrentTime();
 
         switch (event.data) {

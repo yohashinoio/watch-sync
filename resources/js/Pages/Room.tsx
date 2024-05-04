@@ -199,8 +199,11 @@ export default function Room({
         setCurrentMedia((current_media) => {
             if (!current_media) throw new Error("Failed to pause: no media");
 
-            if (current_media.provider === "youtube")
-                youtube_player.current?.pauseVideo();
+            if (current_media.provider === "youtube") {
+                if (youtube_player.current)
+                    youtube_player.current?.pauseVideo();
+                else throw new Error("Failed to pause: player is null");
+            }
 
             return current_media;
         });

@@ -14,6 +14,9 @@ import PlayerStates from "youtube-player/dist/constants/PlayerStates";
 
 const TOLERABLE_DELAY_SECONDS = 2;
 
+let playTriggeredByNonClicks = false;
+let pauseTriggeredByNonClicks = false;
+
 const onPlaybackRateChange = () => {
     console.log("onPlaybackRateChange");
 };
@@ -156,10 +159,20 @@ export default function Room({
     };
 
     const onPause = (time: number) => {
+        const tmp = pauseTriggeredByNonClicks;
+        pauseTriggeredByNonClicks = false;
+
+        if (tmp) return;
+
         broadcastPlayOrPause("Pause", time);
     };
 
     const onPlay = (time: number) => {
+        const tmp = playTriggeredByNonClicks;
+        playTriggeredByNonClicks = false;
+
+        if (tmp) return;
+
         broadcastPlayOrPause("Play", time);
     };
 
@@ -195,6 +208,8 @@ export default function Room({
     };
 
     const pause = () => {
+        pauseTriggeredByNonClicks = true;
+
         // Use setter to get the latest value
         setCurrentMedia((current_media) => {
             if (!current_media) throw new Error("Failed to pause: no media");
@@ -210,6 +225,8 @@ export default function Room({
     };
 
     const play = () => {
+        playTriggeredByNonClicks = true;
+
         // Use setter to get the latest value
         setCurrentMedia((current_media) => {
             if (!current_media) throw new Error("Failed to play: no media");

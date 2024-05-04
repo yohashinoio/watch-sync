@@ -10,8 +10,9 @@ import { URLInput } from "@/Components/WatchSync/Input/URLInput";
 import { MemberList } from "@/Components/WatchSync/List/MemberList";
 import axios from "axios";
 import { PlayList } from "@/Components/WatchSync/List/PlayList";
+import PlayerStates from "youtube-player/dist/constants/PlayerStates";
 
-const TOLERABLE_DELAY_SECONDS = 5;
+const TOLERABLE_DELAY_SECONDS = 2;
 
 const onPlaybackRateChange = () => {
     console.log("onPlaybackRateChange");
@@ -29,7 +30,7 @@ export default function Room({
     playlist_id,
     init_playlist,
 }: PageProps<Props>) {
-    // TODO: ルームに入った時に再生中の状態を同期する
+    // TODO: プレイリストをアップデートすると別のルームのユーザにもブロードキャストを送信していまい、セキュリティ的に危ない（PrivateChannelを使って実装したいところ
 
     const youtube_player = React.useRef<YouTubePlayer | null>(null);
 
@@ -38,8 +39,13 @@ export default function Room({
     const [current_media, setCurrentMedia] = React.useState<Media | null>(null);
 
     React.useEffect(() => {
+        axios
+            .post("/broadcast/join-room", { room_id })
+            .catch((e) => console.error(e));
+    }, [room_id]);
+
+    React.useEffect(() => {
         // Initialize playlist
-        console.log(init_playlist);
         if (init_playlist) {
             setPlaylist(
                 init_playlist.map((c: any, idx: number): Media => {
@@ -67,14 +73,17 @@ export default function Room({
             .catch((e) => console.error(e));
     };
 
-    const displayEmbed = (c: Media) => {
+    const displayEmbed = (c: Media, onReady: () => void = () => {}) => {
         setCurrentMedia(c);
 
         if (c.provider === "youtube") {
             setEmbed(
                 <Embed.YouTube
                     id={c.id}
-                    onReady={(e) => (youtube_player.current = e.target)}
+                    onReady={(e) => {
+                        youtube_player.current = e.target;
+                        onReady();
+                    }}
                     onPause={onPause}
                     onPlay={onPlay}
                     onEnd={onEnd}
@@ -89,6 +98,16 @@ export default function Room({
             youtube_player.current?.seekTo(0, true);
         }
     };
+
+    const getNextMedia = useRecoilCallback(
+        ({ snapshot }) =>
+            // Get the next media in the playlist
+            async (): Promise<Media | undefined> => {
+                const current = await snapshot.getPromise(playListAtom);
+                return current.at(0);
+            },
+        []
+    );
 
     // Return the displayed media
     const advanceEmbed = useRecoilCallback(
@@ -145,12 +164,15 @@ export default function Room({
     };
 
     const onEnd = async () => {
-        const media = await advanceEmbed();
+        const next_media = await getNextMedia();
 
-        if (media) {
+        if (next_media) {
             axios
-                .post("/broadcast/play", { media, time: 0 })
+                .post("/broadcast/end", { room_id, next_media })
                 .catch((e) => console.error(e));
+        } else {
+            setEmbed(null);
+            return null;
         }
     };
 
@@ -173,24 +195,50 @@ export default function Room({
     };
 
     const pause = () => {
-        if (!current_media) throw new Error("Failed to pause: no media");
+        // Use setter to get the latest value
+        setCurrentMedia((current_media) => {
+            if (!current_media) throw new Error("Failed to pause: no media");
 
-        if (current_media.provider === "youtube")
-            youtube_player.current?.pauseVideo();
+            if (current_media.provider === "youtube")
+                youtube_player.current?.pauseVideo();
+
+            return current_media;
+        });
     };
 
     const play = () => {
-        if (!current_media) throw new Error("Failed to play: no media");
+        // Use setter to get the latest value
+        setCurrentMedia((current_media) => {
+            if (!current_media) throw new Error("Failed to play: no media");
 
-        if (current_media.provider === "youtube")
-            youtube_player.current?.playVideo();
+            if (current_media.provider === "youtube") {
+                if (youtube_player.current) youtube_player.current.playVideo();
+                else throw new Error("Failed to play: player is null");
+            }
+
+            return current_media;
+        });
     };
 
     const seekTo = (time: number) => {
-        if (!current_media) throw new Error("Failed to seek: no media");
+        // Use setter to get the latest value
+        setCurrentMedia((current_media) => {
+            if (!current_media) throw new Error("Failed to seek: no media");
 
-        if (current_media.provider === "youtube")
-            youtube_player.current?.seekTo(time, true);
+            if (current_media.provider === "youtube") {
+                if (youtube_player.current)
+                    youtube_player.current.seekTo(time, true);
+                else throw new Error("Failed to play: player is null");
+            }
+
+            return current_media;
+        });
+    };
+
+    const changeState = async (state: "play" | "pause") => {
+        if (state === "play") play();
+        else if (state === "pause") pause();
+        else throw new Error("Failed to change state: unknown state");
     };
 
     const getCurrentTime = async (): Promise<number> => {
@@ -206,11 +254,60 @@ export default function Room({
         }
     };
 
+    const getEmbedState = async (): Promise<"play" | "pause"> => {
+        if (!current_media)
+            throw new Error("Failed to get current state: no media");
+
+        if (current_media.provider === "youtube") {
+            if (youtube_player.current) {
+                const state = await youtube_player.current.getPlayerState();
+                if (state === PlayerStates.PLAYING) return "play";
+                else if (state === PlayerStates.PAUSED) return "pause";
+                else
+                    throw new Error(
+                        "Failed to get current state: unknown state"
+                    );
+            } else
+                throw new Error("Failed to get current state: player is null");
+        } else {
+            throw new Error("Failed to get current state: unknown provider");
+        }
+    };
+
+    const calculateDelay = async (time: number) => {
+        return Math.abs(time - (await getCurrentTime()));
+    };
+
     // Use useEffect to prevent multiple listen events!!
     React.useEffect(() => {
         window.Echo.leaveAllChannels();
 
-        window.Echo.channel("pause-channel").listen("Pause", (e: any) => {
+        window.Echo.channel("end-channel").listen("End", (e: any) => {
+            if (e.room_id !== room_id) return;
+
+            const next_media = e.next_media;
+
+            console.log(`End: ${next_media.id}`);
+
+            displayEmbed(next_media);
+
+            setPlaylist((playlist) => {
+                const next = playlist.at(0);
+                if (
+                    next_media.provider === next?.provider &&
+                    next_media.id === next?.id
+                ) {
+                    axios
+                        .put(route("playlists.update", playlist_id), {
+                            new_playlist: playlist.slice(1),
+                        })
+                        .catch((e) => console.error(e));
+                }
+                return playlist;
+            });
+        });
+
+        window.Echo.channel("pause-channel").listen("Pause", async (e: any) => {
             if (e.room_id !== room_id) return;
 
             // const media = e.media;
@@ -218,7 +315,14 @@ export default function Room({
 
             console.log(`Pause: ${e.time}`);
 
-            seekTo(time);
+            const delay = await calculateDelay(time);
+            if (TOLERABLE_DELAY_SECONDS < delay) {
+                seekTo(time);
+                console.log(`Delay exceeded tolerance: ${delay}`);
+            }
+
+            if ((await getEmbedState()) === "pause") return;
+
             pause();
         });
 
@@ -230,25 +334,13 @@ export default function Room({
 
             console.log(`Play: ${media} ${time}`);
 
-            // Use setter to get the latest value
-            setCurrentMedia((current_media) => {
-                if (current_media) {
-                    if (
-                        current_media.provider !== media.provider ||
-                        current_media.id !== media.id
-                    ) {
-                        displayEmbed(media);
-                    }
-                }
-                return current_media;
-            });
-
-            // Calculate delay and compensate if it exceeds tolerance!
-            const delay = Math.abs(time - (await getCurrentTime()));
+            const delay = await calculateDelay(time);
             if (TOLERABLE_DELAY_SECONDS < delay) {
                 seekTo(time);
                 console.log(`Delay exceeded tolerance: ${delay}`);
             }
+
+            if ((await getEmbedState()) === "play") return;
 
             play();
         });
@@ -261,6 +353,47 @@ export default function Room({
                 console.log(`Update playlist`);
 
                 onUpdatePlaylist(e.new_playlist);
+            }
+        );
+
+        window.Echo.channel("join-room-channel").listen(
+            "JoinRoom",
+            async (e: any) => {
+                if (e.room_id !== room_id) return;
+
+                console.log("Someone has joined the room");
+
+                if (!embed || !current_media) return;
+
+                axios
+                    .post("/broadcast/playback-status", {
+                        room_id,
+                        media: current_media,
+                        state: await getEmbedState(),
+                        time: await getCurrentTime(),
+                    })
+                    .catch((e) => console.error(e));
+            }
+        );
+
+        // A channel to share the media currently being played for newcomers to the room
+        window.Echo.channel("playback-status-channel").listen(
+            "PlaybackStatus",
+            async (e: any) => {
+                if (e.room_id !== room_id) return;
+
+                if (embed) return;
+
+                const media = e.media;
+                const state = e.state;
+                const time = e.time;
+
+                console.log(`Share state: ${media} ${state} ${time}`);
+
+                displayEmbed(media, () => {
+                    seekTo(time);
+                    changeState(state);
+                });
             }
         );
     }, [

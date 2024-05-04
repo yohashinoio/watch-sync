@@ -1,5 +1,6 @@
 import React from "react";
 import YouTube, { YouTubeEvent } from "react-youtube";
+import PlayerStates from "youtube-player/dist/constants/PlayerStates";
 import { Options } from "youtube-player/dist/types";
 
 type YouTubeEmbedProps = {
@@ -10,12 +11,6 @@ type YouTubeEmbedProps = {
     onEnd(): void;
     onPlaybackRateChange(event: YouTubeEvent<any>): void;
 };
-
-const ENDED = 0;
-const PLAYING = 1;
-const PAUSED = 2;
-// const BUFFERING = 3;
-// const CUED = 5;
 
 export const YouTubeEmbed: React.FC<YouTubeEmbedProps> = (props) => {
     const opts: Options = {
@@ -30,17 +25,15 @@ export const YouTubeEmbed: React.FC<YouTubeEmbedProps> = (props) => {
         const time = await event.target.getCurrentTime();
 
         switch (event.data) {
-            case PLAYING:
+            case PlayerStates.PLAYING:
                 props.onPlay(time);
                 break;
-            case PAUSED:
+            case PlayerStates.PAUSED:
                 props.onPause(time);
                 break;
-            case ENDED:
+            case PlayerStates.ENDED:
                 props.onEnd();
                 break;
-            default:
-                throw new Error("Failed to get current time");
         }
     };
 

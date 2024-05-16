@@ -1,6 +1,7 @@
 import { playListAtom } from "@/Recoil/atoms";
-import { Box, Center, Paper, ScrollArea, Stack } from "@mantine/core";
+import { Center, Paper, ScrollArea, Stack } from "@mantine/core";
 import { useRecoilValue } from "recoil";
+import { PlayListItem } from "./PlayListItem";
 
 type PlayQueueProps = { h: string };
 
@@ -9,11 +10,11 @@ export const PlayList: React.FC<PlayQueueProps> = (props) => {
 
     return (
         <Paper h={props.h} w={"20%"} shadow={"xs"}>
-            <ScrollArea>
-                <Center mt={16}>
-                    <Stack>
-                        {playlist.map((entry) => (
-                            <Box key={entry.key}>{entry.id}</Box>
+            <ScrollArea h={props.h}>
+                <Center my={16}>
+                    <Stack w={"70%"}>
+                        {playlist.map((entry, idx) => (
+                            <PlayListItem key={idx} media={entry} />
                         ))}
                     </Stack>
                 </Center>

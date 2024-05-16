@@ -38,9 +38,6 @@ export default function Room({
     const [embed, setEmbed] = React.useState<React.ReactNode | null>(null);
     const [current_media, setCurrentMedia] = React.useState<Media | null>(null);
 
-    const [play_by_non_clicks, setPlayByNonClicks] = React.useState(false);
-    const [pause_by_non_clicks, setPauseByNonClicks] = React.useState(false);
-
     React.useEffect(() => {
         axios
             .post("/broadcast/join-room", { room_id })
@@ -142,10 +139,8 @@ export default function Room({
     const broadcastPlayOrPause = (kind: "Play" | "Pause", time: number) => {
         // Use setter to get the latest value
         setCurrentMedia((current_media) => {
-            if (!current_media) {
-                // Abort broadcast as impossible
-                return current_media;
-            }
+            if (!current_media)
+                throw new Error("Failed to broadcast: no media");
 
             const api =
                 kind === "Play" ? "/broadcast/play" : "/broadcast/pause";
@@ -159,18 +154,10 @@ export default function Room({
     };
 
     const onPause = (time: number) => {
-        setPlayByNonClicks(false);
-        // State is not changed immediately, so it is treated as the value before the change
-        if (pause_by_non_clicks) return;
-
         broadcastPlayOrPause("Pause", time);
     };
 
     const onPlay = (time: number) => {
-        setPlayByNonClicks(false);
-        // State is not changed immediately, so it is treated as the value before the change
-        if (play_by_non_clicks) return;
-
         broadcastPlayOrPause("Play", time);
     };
 
@@ -187,7 +174,7 @@ export default function Room({
         }
     };
 
-    const onUpdatePlaylist = (new_playlist: any) => {
+    const onUpdatePlaylist = async (new_playlist: any) => {
         setPlaylist(
             new_playlist.map((c: any, idx: number): Media => {
                 return {
@@ -211,10 +198,9 @@ export default function Room({
             if (!current_media) throw new Error("Failed to pause: no media");
 
             if (current_media.provider === "youtube") {
-                if (youtube_player.current) {
-                    setPauseByNonClicks(true);
+                if (youtube_player.current)
                     youtube_player.current?.pauseVideo();
-                } else throw new Error("Failed to pause: player is null");
+                else throw new Error("Failed to pause: player is null");
             }
 
             return current_media;
@@ -227,10 +213,8 @@ export default function Room({
             if (!current_media) throw new Error("Failed to play: no media");
 
             if (current_media.provider === "youtube") {
-                if (youtube_player.current) {
-                    setPlayByNonClicks(true);
-                    youtube_player.current.playVideo();
-                } else throw new Error("Failed to play: player is null");
+                if (youtube_player.current) youtube_player.current.playVideo();
+                else throw new Error("Failed to play: player is null");
             }
 
             return current_media;
@@ -267,7 +251,7 @@ export default function Room({
                 return await youtube_player.current.getCurrentTime();
             else throw new Error("Failed to get current time: player is null");
         } else {
-            throw new Error("Failed to get current time: unknown provider");
+            throw new Error("Failed to get current time: unsupported provider");
         }
     };
 
@@ -287,7 +271,9 @@ export default function Room({
             } else
                 throw new Error("Failed to get current state: player is null");
         } else {
-            throw new Error("Failed to get current state: unknown provider");
+            throw new Error(
+                "Failed to get current state: unsupported provider"
+            );
         }
     };
 

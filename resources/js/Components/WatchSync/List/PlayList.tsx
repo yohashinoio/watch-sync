@@ -10,8 +10,8 @@ export const PlayList: React.FC<PlayQueueProps> = (props) => {
 
     return (
         <Paper h={props.h} w={"20%"} shadow={"xs"}>
-            <ScrollArea h={props.h}>
-                <Center my={16}>
+            <ScrollArea py={16} h={props.h}>
+                <Center>
                     <Stack w={"70%"}>
                         {playlist.map((entry, idx) => (
                             <PlayListItem key={idx} media={entry} />

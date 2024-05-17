@@ -16,14 +16,16 @@ class JoinRoom implements ShouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $room_id;
+    public $joined_user;
 
     /**
      * Create a new event instance.
      */
-    public function __construct($room_id)
+    public function __construct($room_id, $joined_user)
     {
         Log::info('Join room event fired!');
         $this->room_id = $room_id;
+        $this->joined_user = $joined_user;
     }
 
     /**

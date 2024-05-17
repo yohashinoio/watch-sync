@@ -1,4 +1,4 @@
-import { Avatar, Box, Center, Flex } from "@mantine/core";
+import { Box, Center, Flex, Stack } from "@mantine/core";
 import React from "react";
 import { VideoInfo } from "js-video-url-parser/lib/urlParser";
 import { YouTubePlayer } from "react-youtube";
@@ -7,10 +7,12 @@ import { useRecoilCallback, useRecoilState } from "recoil";
 import { Media, playListAtom } from "@/Recoil/atoms";
 import { Embed } from "@/Components/WatchSync/Embed";
 import { URLInput } from "@/Components/WatchSync/Input/URLInput";
-import { MemberList } from "@/Components/WatchSync/List/MemberList";
+import { ViewerList } from "@/Components/WatchSync/List/ViewerList";
 import axios from "axios";
 import { PlayList } from "@/Components/WatchSync/List/PlayList";
 import PlayerStates from "youtube-player/dist/constants/PlayerStates";
+import { router } from "@inertiajs/react";
+import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout";
 
 const TOLERABLE_DELAY_SECONDS = 2;
 
@@ -21,7 +23,8 @@ const onPlaybackRateChange = () => {
 type Props = {
     room_id: number;
     playlist_id: number;
-    init_playlist: any;
+    init_playlist: any[];
+    init_viewers: any[];
 };
 
 export default function Room({
@@ -29,18 +32,21 @@ export default function Room({
     room_id,
     playlist_id,
     init_playlist,
+    init_viewers,
 }: PageProps<Props>) {
-    // TODO: プレイリストをアップデートすると別のルームのユーザにもブロードキャストを送信していまい、セキュリティ的に危ない（PrivateChannelを使って実装したいところ
-
     const youtube_player = React.useRef<YouTubePlayer | null>(null);
 
     const [playlist, setPlaylist] = useRecoilState(playListAtom);
     const [embed, setEmbed] = React.useState<React.ReactNode | null>(null);
     const [current_media, setCurrentMedia] = React.useState<Media | null>(null);
+    const [viewers, setViewers] = React.useState<any[]>(init_viewers);
 
     React.useEffect(() => {
         axios
-            .post("/broadcast/join-room", { room_id })
+            .post("/broadcast/join-room", {
+                room_id,
+                joined_user: auth.user,
+            })
             .catch((e) => console.error(e));
     }, [room_id]);
 
@@ -283,8 +289,6 @@ export default function Room({
 
     // Use useEffect to prevent multiple listen events!!
     React.useEffect(() => {
-        window.Echo.leaveAllChannels();
-
         window.Echo.channel("end-channel").listen("End", (e: any) => {
             if (e.room_id !== room_id) return;
 
@@ -360,7 +364,13 @@ export default function Room({
             async (e: any) => {
                 if (e.room_id !== room_id) return;
 
-                console.log("Someone has joined the room");
+                console.log("Someone has joined this room");
+
+                setViewers((viewers) => {
+                    if (viewers.find((v) => v.id === e.joined_user.id))
+                        return viewers;
+                    else return [...viewers, e.joined_user];
+                });
 
                 if (!embed || !current_media) return;
 
@@ -395,6 +405,10 @@ export default function Room({
                 });
             }
         );
+
+        return () => {
+            window.Echo.leaveAllChannels();
+        };
     }, [
         onUpdatePlaylist,
         advanceEmbed,
@@ -405,33 +419,30 @@ export default function Room({
         current_media,
     ]);
 
-    return (
-        <Box mx={24}>
-            <header>
-                <Center>
-                    <Flex
-                        w={"100%"}
-                        h={"10svh"}
-                        justify={"space-between"}
-                        align={"center"}
-                    >
-                        <URLInput onEnter={handleEnterUrl} />
-                        <Avatar radius={"sm"} />
-                    </Flex>
+    if (!auth.user) router.get("/");
+    else {
+        return (
+            <AuthenticatedLayout user={auth.user}>
+                <Center py={48} px={"2rem"}>
+                    <Stack w={"100%"}>
+                        <Box>
+                            <URLInput onEnter={handleEnterUrl} />
+                        </Box>
+
+                        <Flex
+                            w={"100%"}
+                            justify={"space-between"}
+                            align={"center"}
+                        >
+                            <PlayList h={"70svh"} />
+                            <Box>{embed}</Box>
+                            <ViewerList h={"70svh"} viewers={viewers} />
+                        </Flex>
+
+                        <Center>Room id: {room_id}</Center>
+                    </Stack>
                 </Center>
-            </header>
-
-            <main>
-                <Flex h={"80svh"} justify={"space-between"} align={"center"}>
-                    <PlayList h={"80svh"} />
-                    <Box>{embed}</Box>
-                    <MemberList h={"80svh"} />
-                </Flex>
-            </main>
-
-            <footer>
-                <Center h={"10svh"}>Room id: {room_id}</Center>
-            </footer>
-        </Box>
-    );
+            </AuthenticatedLayout>
+        );
+    }
 }

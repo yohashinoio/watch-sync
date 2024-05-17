@@ -22,7 +22,13 @@ class RoomController extends Controller
      */
     public function create()
     {
-        //
+        // Create new room
+        $room = Room::create();
+
+        // Create new playlist
+        $room->playlist()->create(['room_id' => $room->id]);
+
+        return redirect()->route("rooms.show", ["room" => $room->id]);
     }
 
     /**
@@ -30,14 +36,7 @@ class RoomController extends Controller
      */
     public function store(Request $request)
     {
-        // Create new room
-        $room = Room::create();
-
-        // Create new playlist
-        $room->playlist()->create(['room_id' => $room->id]);
-
-        // Return room id as json
-        return response()->json($room);
+        //
     }
 
     /**
@@ -45,19 +44,25 @@ class RoomController extends Controller
      */
     public function show(Room $room)
     {
+        $user = auth()->user();
+
         $init_playlist = [];
         foreach ($room->playlist->items as $playlist_item) {
             $item = Item::findOrFail($playlist_item->item_id);
             array_push($init_playlist, $item);
         }
 
+        $room->users()->syncWithoutDetaching($user);
+
         return Inertia::render(
-            'Room',
+            "Room",
             [
                 "room_id" => $room->id,
                 "playlist_id" => $room->playlist()->first()->id,
                 "init_playlist" => $init_playlist,
-            ]);
+                "init_viewers" => $room->users,
+            ]
+        );
     }
 
     /**

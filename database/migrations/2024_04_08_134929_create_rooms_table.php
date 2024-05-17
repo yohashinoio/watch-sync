@@ -14,7 +14,13 @@ return new class extends Migration
         Schema::create('rooms', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
-            $table->integer('people')->default(0);
+        });
+
+        // 中間テーブル
+        Schema::create('room_user', function (Blueprint $table) {
+            $table->foreignId('room_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->primary(['room_id', 'user_id']);
         });
     }
 
@@ -24,5 +30,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('rooms');
+        Schema::dropIfExists('room_user');
     }
 };

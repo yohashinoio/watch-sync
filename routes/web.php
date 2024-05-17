@@ -27,12 +27,12 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::resource('rooms', RoomController::class)
-    ->only(['store', 'show']);
-    // ->middleware(['auth', 'verified']);
+    ->only(['create', 'show'])
+    ->middleware(['auth', 'verified']);
 
 Route::resource('playlists', PlaylistController::class)
-    ->only(['update']);
-    // ->middleware(['auth', 'verified']);
+    ->only(['update'])
+    ->middleware(['auth', 'verified']);
 
 require __DIR__.'/auth.php';
 require __DIR__.'/broadcast.php';

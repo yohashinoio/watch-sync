@@ -17,6 +17,7 @@ class PlaybackStatus implements ShouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $room_id;
+    public $for;
     public $media;
     public $state;
     public $time;
@@ -24,10 +25,11 @@ class PlaybackStatus implements ShouldBroadcastNow
     /**
      * Create a new event instance.
      */
-    public function __construct($room_id, $media, $state, $time)
+    public function __construct($room_id, $for, $media, $state, $time)
     {
         Log::info('Playback status event fired!');
         $this->room_id = $room_id;
+        $this->for = $for;
         $this->media = $media;
         $this->state = $state;
         $this->time = $time;

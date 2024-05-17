@@ -152,7 +152,12 @@ export default function Room({
                 kind === "Play" ? "/broadcast/play" : "/broadcast/pause";
 
             axios
-                .post(api, { room_id, media: current_media, time })
+                .post(api, {
+                    room_id,
+                    publisher: auth.user,
+                    media: current_media,
+                    time,
+                })
                 .catch((e) => console.error(e));
 
             return current_media;
@@ -172,7 +177,11 @@ export default function Room({
 
         if (next_media) {
             axios
-                .post("/broadcast/end", { room_id, next_media })
+                .post("/broadcast/end", {
+                    room_id,
+                    publisher: auth.user,
+                    next_media,
+                })
                 .catch((e) => console.error(e));
         } else {
             setEmbed(null);
@@ -291,6 +300,7 @@ export default function Room({
     React.useEffect(() => {
         window.Echo.channel("end-channel").listen("End", (e: any) => {
             if (e.room_id !== room_id) return;
+            if (e.publisher.id === auth.user.id) return;
 
             const next_media = e.next_media;
 
@@ -316,6 +326,7 @@ export default function Room({
 
         window.Echo.channel("pause-channel").listen("Pause", async (e: any) => {
             if (e.room_id !== room_id) return;
+            if (e.publisher.id === auth.user.id) return;
 
             // const media = e.media;
             const time = e.time;
@@ -333,6 +344,7 @@ export default function Room({
 
         window.Echo.channel("play-channel").listen("Play", async (e: any) => {
             if (e.room_id !== room_id) return;
+            if (e.publisher.id === auth.user.id) return;
 
             const media = e.media;
             const time = e.time;
@@ -364,7 +376,7 @@ export default function Room({
             async (e: any) => {
                 if (e.room_id !== room_id) return;
 
-                console.log("Someone has joined this room");
+                console.log(`Join: ${e.joined_user.name}`);
 
                 setViewers((viewers) => {
                     if (viewers.find((v) => v.id === e.joined_user.id))
@@ -377,6 +389,7 @@ export default function Room({
                 axios
                     .post("/broadcast/playback-status", {
                         room_id,
+                        for: e.joined_user,
                         media: current_media,
                         state: await getEmbedState(),
                         time: await getCurrentTime(),
@@ -393,16 +406,18 @@ export default function Room({
 
                 if (embed) return;
 
-                const media = e.media;
-                const state = e.state;
-                const time = e.time;
+                if (e.for.id === auth.user.id) {
+                    const media = e.media;
+                    const state = e.state;
+                    const time = e.time;
 
-                console.log(`Share state: ${media} ${state} ${time}`);
+                    console.log(`Share state: ${media} ${state} ${time}`);
 
-                displayEmbed(media, () => {
-                    seekTo(time);
-                    changeState(state);
-                });
+                    displayEmbed(media, () => {
+                        seekTo(time);
+                        changeState(state);
+                    });
+                }
             }
         );
 

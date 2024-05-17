@@ -16,15 +16,17 @@ class End implements ShouldBroadcastNow
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public $room_id;
+    public $publisher;
     public $next_media;
 
     /**
      * Create a new event instance.
      */
-    public function __construct($room_id, $next_media)
+    public function __construct($room_id, $publisher, $next_media)
     {
         Log::info('End event fired!');
         $this->room_id = $room_id;
+        $this->publisher = $publisher;
         $this->next_media = $next_media;
     }
 

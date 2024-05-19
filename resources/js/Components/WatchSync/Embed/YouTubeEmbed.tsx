@@ -13,10 +13,12 @@ type YouTubeEmbedProps = {
 };
 
 export const YouTubeEmbed: React.FC<YouTubeEmbedProps> = (props) => {
-    const opts: Options = {
+    // There is no mute option in react-youtube, so we have to use any
+    const opts: Options | any = {
         playerVars: {
             playsinline: 0,
             autoplay: 1,
+            mute: 1, // To work around the autoplay policy on Chrome
             loop: 0,
         },
     };

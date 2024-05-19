@@ -298,9 +298,10 @@ export default function Room({
 
     // Use useEffect to prevent multiple listen events!!
     React.useEffect(() => {
+        window.Echo.leaveAllChannels();
+
         window.Echo.channel("end-channel").listen("End", (e: any) => {
             if (e.room_id !== room_id) return;
-            if (e.publisher.id === auth.user.id) return;
 
             const next_media = e.next_media;
 
@@ -420,19 +421,7 @@ export default function Room({
                 }
             }
         );
-
-        return () => {
-            window.Echo.leaveAllChannels();
-        };
-    }, [
-        onUpdatePlaylist,
-        advanceEmbed,
-        pause,
-        seekTo,
-        getCurrentTime,
-        embed,
-        current_media,
-    ]);
+    }, [embed, current_media]);
 
     if (!auth.user) router.get("/");
     else {

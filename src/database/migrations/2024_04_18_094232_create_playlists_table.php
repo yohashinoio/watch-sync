@@ -18,17 +18,17 @@ return new class extends Migration
             $table->string('media_id');
         });
 
+        Schema::create('playlists', function (Blueprint $table) {
+            $table->id();
+            $table->timestamps();
+            $table->foreignId('room_id')->constrained()->cascadeOnDelete();
+        });
+
         Schema::create('playlist_items', function (Blueprint $table) {
             $table->id();
             $table->timestamps();
             $table->foreignId('playlist_id')->constrained()->cascadeOnDelete();
             $table->foreignId('item_id')->constrained();
-        });
-
-        Schema::create('playlists', function (Blueprint $table) {
-            $table->id();
-            $table->timestamps();
-            $table->foreignId('room_id')->constrained()->cascadeOnDelete();
         });
     }
 

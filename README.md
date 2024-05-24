@@ -85,9 +85,3 @@ $ docker compose exec php php /var/www/html/watch-sync/artisan migrate
 
 ## Finally
 Those who have done the Ngrok section should visit the Ngrok URL, and those who have not should visit `localhost:8000` from a web browser.
-
-<div id="SEVREVERB">
-
-
-
-<div id="SEVMYSQL">

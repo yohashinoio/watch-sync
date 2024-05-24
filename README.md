@@ -39,8 +39,29 @@ VITE_REVERB_SCHEME=https
 ```
 
 ## Setting environment variables
-[Reverb](#SEVREVERB)
-[MySQL](#SEVMYSQL)
+### Reverb
+If you just want to try this application, it is enough to set `REVERB_APP_ID`, `REVERB_APP_KEY`, and `REVERB_APP_SECRET`.
+
+#### REVERB_APP_ID
+```bash
+$ tr -dc 0-9 < /dev/urandom | fold -w 8 | head -1
+```
+
+#### REVERB_APP_KEY and REVERB_APP_SECRET
+```bash
+$ tr -dc "[:alnum:]" < /dev/urandom | fold -w 20 | head -2
+```
+
+Write the generated values in the appropriate places in the `.env` and that's it.
+
+### MySQL
+If you just want to try this app, just set `DB_PASSWORD` to `root` in `.env`.
+```
+DB_PASSWORD=root
+```
+
+Of course, if the operating requirements are such that security is important, strict configuration is necessary.
+In that case, change `MYSQL_ROOT_PASSWORD` in `compose.yaml`.
 
 ## Build frontend
 ```bash
@@ -67,28 +88,6 @@ Those who have done the Ngrok section should visit the Ngrok URL, and those who 
 
 <div id="SEVREVERB">
 
-## Setting environment variables for Reverb
-If you just want to try this application, it is enough to set `REVERB_APP_ID`, `REVERB_APP_KEY`, and `REVERB_APP_SECRET`.
 
-### REVERB_APP_ID
-```bash
-$ tr -dc 0-9 < /dev/urandom | fold -w 8 | head -1
-```
-
-### REVERB_APP_KEY and REVERB_APP_SECRET
-```bash
-$ tr -dc "[:alnum:]" < /dev/urandom | fold -w 20 | head -2
-```
-
-Write the generated values in the appropriate places in the `.env` and that's it.
 
 <div id="SEVMYSQL">
-
-## Setting environment variables for MySQL
-If you just want to try this app, just set `DB_PASSWORD` to `root` in `.env`.
-```
-DB_PASSWORD=root
-```
-
-Of course, if the operating requirements are such that security is important, strict configuration is necessary.
-In that case, change `MYSQL_ROOT_PASSWORD` in `compose.yaml`.
